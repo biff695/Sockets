@@ -140,6 +140,11 @@ io.on('connection', function (socket) {
 		io.emit('message broadcast', msg);
 	});
 
+	socket.on('message private', function (msg) {
+
+		console.log(msg);
+	});
+
 	// User disconnected event
 	socket.on('disconnect', function () {
 

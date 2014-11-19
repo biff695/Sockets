@@ -1,0 +1,8 @@
+extends layout
+
+block content
+	h1= title
+	div.auth-wrap
+		label(for="username") Username
+		input#txtUsername(type="text", name="username")
+		button#btnLogin(onclick="Account.Login();") Login

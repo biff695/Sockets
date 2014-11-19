@@ -32,26 +32,19 @@ socket.on('message broadcast', function (msg) {
 
 socket.on("login response", Account.LoginResponse);
 
-var init = function () {
-
-	Settings.Name.Set($("#txtName").val());
-
-	$(".splash").css("display", "none");
-}
-
 var send = function () {
 
-	var msgTxt = $('#m').val().trim();
+	var msgTxt = $('#txtMessage').val().trim();
 
 	// stop if no message
 	if (!msgTxt)
 		return;
 
 	// Send message event
-	socket.emit('chat message', { Name: Settings.Name, Message: msgTxt });
+	socket.emit('message broadcast', { Name: Settings.Name, Message: msgTxt });
 
 	// reset msg box
-	$('#m').val('');
+	$('#txtMessage').val('');
 
 	return false;
 };

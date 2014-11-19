@@ -44,7 +44,7 @@ var Account = {
 
 		var username = $("#txtUsername").val().trim();
 
-		if (!username)
+		if (!username || username.length > 25)
 			return;
 
 		socket.emit("authorise", { Username: username });
@@ -58,14 +58,21 @@ var Account = {
 
 	LoginResponse: function (msg) {
 
-		Settings.Username.Set(msg.Username);
+		if (msg.Success) {
 
-		var allUsers = msg.Users;
+			Settings.Username.Set(msg.Username);
 
-		console.log(allUsers);
+			var allUsers = msg.Users;
 
-		$(".auth-wrap").hide();
-		$(".messenger").show();
+			Users.UpdateList(allUsers);
+
+			$(".auth-wrap").hide();
+			$(".messenger").show();
+
+			$('#txtMessage').focus();
+		} else {
+			alert(msg.Message);
+		}
 	}
 };
 
@@ -82,13 +89,17 @@ var Messaging = {
 	BroadcastReceived: function (msg) {
 
 		var message = Emoticons.Format(msg.Message);
+		
+		message = Messaging.FormatHashes(message);
 
 		var isServerMessage = !msg.Username;
 		var isSelfMessage = Settings.Username.Get() == msg.Username;
 
-		$('#messages')
-			.append($('<li' + (isSelfMessage ? " class=\"self\"" : "") + (isServerMessage ? " class=\"server\"" : "")  + '>')
-			.text((msg.Username ? msg.Username + ": " : "") + message));
+		var li = $('<li' + (isSelfMessage ? " class=\"self\"" : "") + (isServerMessage ? " class=\"server\"" : "") + '>');
+
+		li.html((msg.Username ? msg.Username + ": " : "") + message);
+
+		$('#messages').append(li);
 
 		var objDiv = document.getElementById("messages");
 
@@ -116,6 +127,10 @@ var Messaging = {
 
 		if (evt.keyCode == KeyCodes.Enter)
 			Messaging.BroadcastSend();
+	},
+
+	FormatHashes: function (str) {
+		return str.replace(/#(\w+)/g, "<span class=\"hashtag\">#$1</span>");
 	}
 };
 
@@ -141,7 +156,11 @@ var Users = {
 
 	UpdateList: function (users) {
 
+		// Reset list
+		$("#userList").html("");
 
+		for (var u in users)
+			$("#userList").append($("<li>").text(users[u]));
 	}
 }
 
@@ -167,6 +186,18 @@ var Emoticons = {
 	"O.o": "confused",
 
 	Format: function (str) {
+
+		for (var e in Emoticons) {
+			if (e == "Format")
+				continue;
+
+			var find = "\\" + e.replace(/(.{1})/g, "$1\\");
+			
+			find = find.substring(0, find.length - 1);
+
+			str = str.replace(new RegExp(find, "g"), "<span class=\"emoticon emoticon_" + Emoticons[e] + "\"></span>");
+		}
+
 		return str;
 	}
 }

@@ -82,11 +82,18 @@ io.on('connection', function (socket) {
 		
 		console.log(authData);
 		
+		if (Users[user]) {
+
+			socket.emit("login response", { Success: false, Message: "User exists" });
+
+			return;
+		}
+
 		Users[user] = socket;
 
 		var allUsers = Object.keys(Users);
 
-		socket.emit("login response", { Username: user, Users: allUsers });
+		socket.emit("login response", { Success: true, Username: user, Users: allUsers });
 
 		socket.broadcast.emit("user connected", { Username: user, Users: allUsers });
 	});

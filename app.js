@@ -30,9 +30,9 @@ app.use('/users', users);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-    var err = new Error('Not Found');
-    err.status = 404;
-    next(err);
+	var err = new Error('Not Found');
+	err.status = 404;
+	next(err);
 });
 
 // error handlers
@@ -40,23 +40,23 @@ app.use(function(req, res, next) {
 // development error handler
 // will print stacktrace
 if (app.get('env') === 'development') {
-    app.use(function(err, req, res, next) {
-        res.status(err.status || 500);
-        res.render('error', {
-            message: err.message,
-            error: err
-        });
-    });
+	app.use(function(err, req, res, next) {
+		res.status(err.status || 500);
+		res.render('error', {
+			message: err.message,
+			error: err
+		});
+	});
 }
 
 // production error handler
 // no stacktraces leaked to user
 app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-        message: err.message,
-        error: {}
-    });
+	res.status(err.status || 500);
+	res.render('error', {
+		message: err.message,
+		error: {}
+	});
 });
 
 var server = app.listen(3000, function () {
@@ -73,101 +73,66 @@ var io = require('socket.io')(server);
 
 io.on('connection', function (socket) {
 
-	console.log('a user connected: ' + socket);
-
-	// Track active sockets
-	SocketManager.AddSocket(socket);
+	console.log('user connected');
 
 	// Authorisation event
 	socket.on('authorise', function (authData) {
 
-		var user = authData.UserName;
+		var user = authData.Username;
 		
 		console.log(authData);
 		
-		var result = {};
+		Users[user] = socket;
 
-		socket.emit("login response", result);
+		var allUsers = Object.keys(Users);
+
+		socket.emit("login response", { Username: user, Users: allUsers });
+
+		socket.broadcast.emit("user connected", { Username: user, Users: allUsers });
 	});
 
-	// Registration event
-	socket.on('register', function (regData) {
-
-		var email, user, pass;
-
-		try {
-
-			// "Validate" user input details
-			email = regData.Email.trim();
-			user = regData.UserName.trim();
-			pass = regData.Password.trim();
-
-			// if any required fields are missing then break
-			if (!email || !user || !pass)
-				throw "Reg failed";
-
-		} catch (ex) {
-
-			console.log('Registration failed');
-			return;
-		}
-
-		// Encrypt password for database storage
-		var encPass = Encryption.GetEncryptedString(pass);
-
-		// Save user to database
-		db.users.save({ email: email, user: user, pass: encPass }, function (err, success) {
-
-			if (err || !success) {
-
-				console.log("Registration failed to save user.");
-
-				// send err back to client
-				socket.emit('register failed', err);
-
-			} else {
-
-				console.log("User registered");
-			}
-		});
-
-	});
-
-	// Message received event
+	// Broadcast message event
 	socket.on('message broadcast', function (msg) {
 
 		console.log(msg);
 		io.emit('message broadcast', msg);
 	});
 
+	// Private message event
 	socket.on('message private', function (msg) {
 
-		console.log(msg);
+		var from = msg.From;
+		var to = msg.To;
+		var text = msg.Text;
+
+		if (!Users[to])
+			socket.emit('message failed', { Message: "Could not find user" });
+
+		Users[to].emit('message private', msg);
+
+		//console.log(msg);
 	});
 
 	// User disconnected event
 	socket.on('disconnect', function () {
 
-		SocketManager.RemoveSocket(socket);
+		for (var u in Users)
+			if (Users[u] == socket) {
 
-		console.log('user disconnected');
+				delete Users[u];
+
+				var allUsers = Object.keys(Users);
+
+				io.emit("user disconnected", { Username: u, Users: allUsers });
+
+				console.log(u + ' disconnected');
+			} else {
+				console.log('user disconnected');
+			}
 	});
 });
 
-var SocketManager = {
-	ActiveSockets: [],
-
-	AddSocket: function (skt) {
-		SocketManager.ActiveSockets.push(skt);
-	},
-
-	RemoveSocket: function (skt) {
-
-		var index = SocketManager.ActiveSockets.indexOf(skt);
-
-		SocketManager.ActiveSockets.slice(index, index + 1);
-	}
-}
+var Users = {};
 
 //#endregion
 

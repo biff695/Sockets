@@ -33,6 +33,8 @@ $(document).ready(function () {
 
 	if (username) {
 		$("#txtUsername").val(username);
+
+		Account.Login(username);
 	}
 
 	$("#txtUsername").focus();
@@ -40,9 +42,9 @@ $(document).ready(function () {
 
 var Account = {
 
-	Login: function () {
+	Login: function (user) {
 
-		var username = $("#txtUsername").val().trim();
+		var username = user || $("#txtUsername").val().trim();
 
 		if (!username || username.length > 25)
 			return;
@@ -97,7 +99,7 @@ var Messaging = {
 
 		var li = $('<li' + (isSelfMessage ? " class=\"self\"" : "") + (isServerMessage ? " class=\"server\"" : "") + '>');
 
-		li.html((msg.Username ? msg.Username + ": " : "") + message);
+		li.html((!isServerMessage && !isSelfMessage ? msg.Username + ": " : "") + message);
 
 		$('#messages').append(li);
 
